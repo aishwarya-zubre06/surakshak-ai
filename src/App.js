@@ -11,9 +11,12 @@ import Agents from './pages/Agents';
 import Reports from './pages/Reports';
 import SOS from './pages/SOS';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import FaceVerify from './pages/FaceVerify';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 
+// Dark theme configuration
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -46,12 +49,22 @@ const darkTheme = createTheme({
   },
 });
 
-// Protected Route wrapper
+// Protected Route Component – checks localStorage for face verification
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
+  const faceVerified = localStorage.getItem('faceVerified') === 'true';
+  const location = window.location.pathname;
+
+  // 1. Must be logged in
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  // 2. Must have face verified (unless already on /face-verify page)
+  if (!faceVerified && location !== '/face-verify') {
+    return <Navigate to="/face-verify" replace />;
+  }
+
   return children;
 };
 
@@ -65,7 +78,12 @@ function App() {
             <Router>
               <Navbar />
               <Routes>
+                {/* 🔓 Public routes (no authentication required) */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/face-verify" element={<FaceVerify />} />
+
+                {/* 🔒 Protected routes (login + face verification required) */}
                 <Route
                   path="/"
                   element={
@@ -106,7 +124,8 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                {/* Redirect any unknown route to home */}
+
+                {/* 🔄 Catch-all redirect */}
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
               <Footer />

@@ -19,7 +19,7 @@ const Login = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  // ----- Face Authentication (still simulated) -----
+  // ----- Face Authentication (simulated) -----
   const startFaceAuth = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -41,18 +41,17 @@ const Login = () => {
     canvas.height = videoRef.current.videoHeight;
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
-    // Simulate login – in production, send the image to /auth/face-login
     setLoading(true);
     try {
-      // For now, we simulate a successful face login.
-      // Replace this with an API call that validates the face.
+      // In production, you would send the image to your backend for verification
+      // For demo, we simulate success.
       // const formData = new FormData();
       // formData.append('face', canvas.toBlob(...));
       // const res = await api.post('/auth/face-login', formData);
       // const { token, user } = res.data;
       // localStorage.setItem('token', token);
       // login(user);
-      // navigate('/dashboard');
+      // navigate('/face-verify');
 
       // Simulate success
       setTimeout(() => {
@@ -62,9 +61,10 @@ const Login = () => {
         const stream = videoRef.current.srcObject;
         if (stream) stream.getTracks().forEach(track => track.stop());
         videoRef.current.srcObject = null;
-        // Simulate a user object
+        // Simulate a user object (in real app, this comes from the backend)
         login({ id: 'face-user', name: 'Face User', email: 'face@user.com' });
-        navigate('/dashboard');
+        // Redirect to face verification step
+        navigate('/face-verify');
       }, 1000);
     } catch (err) {
       setError('Face authentication failed. Please try again or use email.');
@@ -95,7 +95,8 @@ const Login = () => {
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       login(user);
-      navigate('/dashboard');
+      // ✅ Redirect to face verification
+      navigate('/face-verify');
     } catch (err) {
       const msg = err.response?.data?.msg || 'Login failed. Please check your credentials.';
       setError(msg);
@@ -166,10 +167,10 @@ const Login = () => {
               <Button
                 variant="contained"
                 fullWidth
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/face-verify')}
                 sx={{ mt: 2, background: 'linear-gradient(135deg, #00d4ff, #7b2ffc)' }}
               >
-                {t('login.goDashboard')}
+                Go to Face Verification
               </Button>
             </Box>
           )}
@@ -215,7 +216,7 @@ const Login = () => {
 
           <Box sx={{ mt: 3 }}>
             <Typography variant="body2" sx={{ color: '#8892b0' }}>
-              {t('login.noAccount')}
+              {t('login.noAccount')} <Link href="/register" sx={{ color: '#00d4ff' }}>Sign Up</Link>
             </Typography>
             <Typography variant="body2" sx={{ color: '#8892b0', mt: 1 }}>
               <Link href="#" sx={{ color: '#8892b0' }}>{t('login.forgot')}</Link>
