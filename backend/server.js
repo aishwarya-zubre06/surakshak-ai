@@ -1,18 +1,18 @@
-﻿const express = require('express');
+﻿require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
-require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/surakshak')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('[OK] MongoDB connected'))
-  .catch(err => console.error('[ERROR] MongoDB connection:', err));
+  .catch(err => console.error('[ERROR] MongoDB connection:', err.message));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -26,32 +26,52 @@ const io = socketIo(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
-const socketIntervals = new Map();
-
+// Real‑time threat emitter (improved)
 io.on('connection', (socket) => {
   console.log(`[Socket] Client connected: ${socket.id}`);
+
   const interval = setInterval(() => {
+    const threatTypes = [
+      'Phishing', 'Malware', 'QR Scam', 'Deepfake',
+      'Financial Fraud', 'Ransomware', 'DDoS', 'Data Breach'
+    ];
+    const riskLevels = ['Low', 'Medium', 'High'];
+    const statuses = ['Detected', 'Blocked', 'Escalated', 'Under Investigation'];
+    const cities = [
+      { city: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+      { city: 'Delhi', lat: 28.6139, lng: 77.2090 },
+      { city: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
+      { city: 'Chennai', lat: 13.0827, lng: 80.2707 },
+      { city: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+      { city: 'Hyderabad', lat: 17.3850, lng: 78.4867 },
+      { city: 'Pune', lat: 18.5204, lng: 73.8567 },
+      { city: 'Ahmedabad', lat: 23.0225, lng: 72.5714 },
+    ];
+    const location = cities[Math.floor(Math.random() * cities.length)];
+
     const fakeThreat = {
-      id: Date.now() + Math.random(),
-      type: ['Phishing', 'Malware', 'QR Scam', 'Deepfake', 'Financial Fraud'][Math.floor(Math.random() * 5)],
-      source: `attacker-${Math.floor(Math.random() * 100)}@example.com`,
+      id: Date.now() + Math.random().toString(36).substring(2, 8),
+      type: threatTypes[Math.floor(Math.random() * threatTypes.length)],
+      source: `attacker-${Math.floor(Math.random() * 9999)}@example.com`,
       location: {
-        lat: 20 + Math.random() * 10,
-        lng: 70 + Math.random() * 10
+        lat: location.lat + (Math.random() - 0.5) * 0.02,
+        lng: location.lng + (Math.random() - 0.5) * 0.02,
+        city: location.city,
       },
-      risk: ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)],
-      status: 'Detected',
-      timestamp: new Date()
+      risk: riskLevels[Math.floor(Math.random() * riskLevels.length)],
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      timestamp: new Date().toISOString(),
+      description: `Suspicious activity detected from ${location.city}`
     };
-    socket.emit('newThreat', fakeThreat);
+
+    io.emit('newThreat', fakeThreat);
+    console.log(`[Threat] ${fakeThreat.type} at ${fakeThreat.location.city} (${fakeThreat.risk} risk)`);
+
   }, 5000);
-  socketIntervals.set(socket.id, interval);
 
   socket.on('disconnect', () => {
     console.log(`[Socket] Client disconnected: ${socket.id}`);
-    const interval = socketIntervals.get(socket.id);
-    if (interval) clearInterval(interval);
-    socketIntervals.delete(socket.id);
+    clearInterval(interval);
   });
 });
 
